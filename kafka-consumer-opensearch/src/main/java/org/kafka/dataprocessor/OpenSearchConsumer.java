@@ -13,6 +13,8 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.RequestOptions;
@@ -106,8 +108,11 @@ public class OpenSearchConsumer {
                 int recordsCount = records.count();
                 log.info("Consumer Records Count : {}", recordsCount);
 
-                for (ConsumerRecord<String, String> record : records) {
+                //BulkRequest
+                BulkRequest bulkRequest = new BulkRequest();
 
+
+                for (ConsumerRecord<String, String> record : records) {
 
                     try {
                         // send the record in to opensearch
@@ -115,7 +120,6 @@ public class OpenSearchConsumer {
                         // How to process/consume the message exactly-one not more not less
                         // strategy 1: define an Id using Record coordinates
                         // String id = record.topic() + "_" + record.partition() + "_" + record.offset(); // not best
-
 
                         //strategy 2: get the id from the coming metadata
                         String id = extractId(record.value()); // best
@@ -125,14 +129,32 @@ public class OpenSearchConsumer {
                                 .source(record.value(), XContentType.JSON)
                                 .id(id); // using id
 
-                        IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
+                        //IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
+                        bulkRequest.add(indexRequest);
 
-                        log.info("Inserted 1 document into OpenSearch Index {}", response.getId());
+
+                        //log.info("Inserted 1 document into OpenSearch Index {}", response.getId());
                     }catch (Exception e) {
 
                     }
 
                 }
+                if (bulkRequest.numberOfActions() > 0) {
+                    BulkResponse bulkResponse = openSearchClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+
+                    log.info("Bulk Response : {}", bulkResponse.getItems().length + "record(s).");
+                    try {
+                        Thread.sleep(1000);
+
+                    }catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+
+                //commit offsets after the batch is consumed
+                consumer.commitSync();
+                log.info("Offsets have been successfully committed");
 
             }
 
@@ -174,6 +196,7 @@ public class OpenSearchConsumer {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
         //create the Kafka consumer
         KafkaConsumer<String, String> consumer;
