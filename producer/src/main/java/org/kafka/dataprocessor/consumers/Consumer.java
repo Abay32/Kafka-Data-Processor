@@ -1,7 +1,8 @@
-package org.kafka.dataprocessor.producer.consumers;
+package org.kafka.dataprocessor.consumers;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -26,10 +27,12 @@ public class Consumer {
         // create consumer config
         properties.setProperty("key.deserializer", StringDeserializer.class.getName());
         properties.setProperty("value.deserializer", StringDeserializer.class.getName());
-
         properties.setProperty("group.id", "groupId");
-
         properties.setProperty("auto.offset.reset", "earliest");
+
+        //use a cooperativeStickyAssignor for partition balance
+        properties.setProperty("partition.assignment.strategy", CooperativeStickyAssignor.class.getName());
+
 
         //create a consumer
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);

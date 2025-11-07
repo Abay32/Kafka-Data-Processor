@@ -1,4 +1,4 @@
-package org.kafka.dataprocessor.producer.producers;
+package org.kafka.dataprocessor.producers;
 
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
-public class ProducerWithKeys {
-    private static final Logger log = LoggerFactory.getLogger(ProducerWithKeys.class.getSimpleName());
+public class ProducerWithCallBack {
+    private static final Logger log = LoggerFactory.getLogger(ProducerWithCallBack.class.getSimpleName());
 
     public static void main(String[] args) {
         log.info("I am a Kafka Producer");
@@ -23,15 +23,14 @@ public class ProducerWithKeys {
         // connect to Conduktor playground
 //        properties.setProperty("bootstrap.servers", "cluster.playground.cdkt.io:9092");
 //        properties.setProperty("security.protocol", "SASL_SSL");
-//        properties.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required
-//        username=\"3ZP2D33l5Fr7rb1t6HlWHB\" password=\"79fa840d-e735-4d48-8131-f2a322fed3c8\";" );
+//        properties.setProperty("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"3ZP2D33l5Fr7rb1t6HlWHB\" password=\"79fa840d-e735-4d48-8131-f2a322fed3c8\";" );
 //        properties.setProperty("sasl.mechanism", "PLAIN");
 
 
         // set producer properties
         properties.setProperty("key.serializer", StringSerializer.class.getName());
         properties.setProperty("value.serializer", StringSerializer.class.getName());
-        //properties.setProperty("batch.size", "400");
+        properties.setProperty("batch.size", "400");
 
         // This assigns to a random partitioner and not recommended for performance perpose
         // properties.setProperty("partitioner.class", RoundRobinPartitioner.class.getName());
@@ -40,16 +39,11 @@ public class ProducerWithKeys {
         KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
 
 
+        for (int j=0; j<10; j++){
 
-        for (int j=0; j<2; j++){
-            for (int i=0; i<10; i++){
-
-                String topic = "java-demo-topic";
-                String key = "id_"+ i;
-                String value = "Hey Consumer "+ i;
-
+            for (int i=0; i<40; i++){
                 // create a producer recorde
-                ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, value);
+                ProducerRecord<String, String> record = new ProducerRecord<>("java-demo-topic", "key1", "Hello Kafka " + i);
 
                 //send data with Sticky partitioner (Performance improvement)
                 producer.send(record, new Callback()  {
@@ -59,14 +53,18 @@ public class ProducerWithKeys {
                         if (e != null) {
                             log.error("Error while sending record to topic", e);
                         } else  {
-                            log.info("key " +  key + " Partition: " + metadata.partition() );
+                            log.info("Received message from topic: \n" +
+                                    "Topic: " + metadata.topic() + "\n" +
+                                    "Partition: " + metadata.partition() + "\n" +
+                                    "Offset: " + metadata.offset() + "\n" +
+                                    "Timestamp: " + metadata.timestamp() );
                         }
                     }
                 });
+
             }
-            try{
-                Thread.sleep(500);
-                System.out.println("\n ----------------------------------------------- \n");
+            try {
+                Thread.sleep(10000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -81,4 +79,3 @@ public class ProducerWithKeys {
 
     }
 }
-

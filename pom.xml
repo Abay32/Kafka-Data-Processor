@@ -10,6 +10,8 @@
     <packaging>pom</packaging>
     <modules>
         <module>producer</module>
+        <module>kafka-producer-wikimedia</module>
+        <module>kafka-consumer-opensearch</module>
     </modules>
 
     <properties>
