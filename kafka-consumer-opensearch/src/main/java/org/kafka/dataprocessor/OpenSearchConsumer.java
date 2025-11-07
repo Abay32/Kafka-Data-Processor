@@ -1,7 +1,6 @@
 package org.kafka.dataprocessor;
 
 import com.google.gson.JsonParser;
-import com.google.gson.annotations.JsonAdapter;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -12,11 +11,11 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
@@ -31,6 +30,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
+
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
@@ -85,6 +85,24 @@ public class OpenSearchConsumer {
         //create our kafka Client
         KafkaConsumer<String, String>  consumer = createKafkaConsumer();
 
+        // get the reference to main Thread
+        final Thread mainThread = Thread.currentThread();
+
+        // adding the shutdown hook
+        Runtime.getRuntime().addShutdownHook( new Thread() {
+            public void run() {
+                log.info("Shutting down...");
+                consumer.wakeup();
+
+                // join the main thread to allow the excution of the code in the main thread
+                try {
+                    mainThread.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
         try(openSearchClient; consumer) {
 
             boolean indexExists = openSearchClient.indices().exists(new GetIndexRequest("wikimedia"), RequestOptions.DEFAULT);
@@ -111,7 +129,6 @@ public class OpenSearchConsumer {
                 //BulkRequest
                 BulkRequest bulkRequest = new BulkRequest();
 
-
                 for (ConsumerRecord<String, String> record : records) {
 
                     try {
@@ -124,7 +141,6 @@ public class OpenSearchConsumer {
                         //strategy 2: get the id from the coming metadata
                         String id = extractId(record.value()); // best
 
-
                         IndexRequest indexRequest = new IndexRequest("wikimedia")
                                 .source(record.value(), XContentType.JSON)
                                 .id(id); // using id
@@ -132,36 +148,32 @@ public class OpenSearchConsumer {
                         //IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
                         bulkRequest.add(indexRequest);
 
-
                         //log.info("Inserted 1 document into OpenSearch Index {}", response.getId());
-                    }catch (Exception e) {
-
-                    }
-
+                    }catch (Exception e) {          }
                 }
                 if (bulkRequest.numberOfActions() > 0) {
                     BulkResponse bulkResponse = openSearchClient.bulk(bulkRequest, RequestOptions.DEFAULT);
 
                     log.info("Bulk Response : {}", bulkResponse.getItems().length + "record(s).");
-                    try {
-                        Thread.sleep(1000);
-
-                    }catch (InterruptedException e) {
+                    try { Thread.sleep(1000); }
+                    catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
-
-
                 //commit offsets after the batch is consumed
                 consumer.commitSync();
                 log.info("Offsets have been successfully committed");
-
             }
-
-
-
-
+        } catch (WakeupException e) {
+            log.info("Consumer is starting to shut down...");
+        } catch (Exception e) {
+            log.error("unexpected error ", e);
+        } finally {
+            consumer.close();
+            openSearchClient.close();
+            log.info("The consumer is now gracefully shut down");
         }
+
 
 
 
