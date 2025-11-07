@@ -1,5 +1,7 @@
 package org.kafka.dataprocessor;
 
+import com.google.gson.JsonParser;
+import com.google.gson.annotations.JsonAdapter;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -102,17 +104,33 @@ public class OpenSearchConsumer {
                 ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(3000));
 
                 int recordsCount = records.count();
-                log.info("Consumer Records Count : " + recordsCount);
+                log.info("Consumer Records Count : {}", recordsCount);
 
                 for (ConsumerRecord<String, String> record : records) {
 
-                    // send the record in to opensearch
-                    IndexRequest indexRequest = new IndexRequest("wikimedia")
-                            .source(record.value(), XContentType.JSON) ;
 
-                    IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
+                    try {
+                        // send the record in to opensearch
 
-                    log.info("Inserted 1 document into OpenSearch Index " + response.getId());
+                        // How to process/consume the message exactly-one not more not less
+                        // strategy 1: define an Id using Record coordinates
+                        // String id = record.topic() + "_" + record.partition() + "_" + record.offset(); // not best
+
+
+                        //strategy 2: get the id from the coming metadata
+                        String id = extractId(record.value()); // best
+
+
+                        IndexRequest indexRequest = new IndexRequest("wikimedia")
+                                .source(record.value(), XContentType.JSON)
+                                .id(id); // using id
+
+                        IndexResponse response = openSearchClient.index(indexRequest, RequestOptions.DEFAULT);
+
+                        log.info("Inserted 1 document into OpenSearch Index {}", response.getId());
+                    }catch (Exception e) {
+
+                    }
 
                 }
 
@@ -132,6 +150,16 @@ public class OpenSearchConsumer {
 
         //close things
 
+
+    }
+
+    private static String extractId(String json) {
+        return JsonParser.parseString(json)
+                .getAsJsonObject()
+                .get("meta")
+                .getAsJsonObject()
+                .get("id")
+                .getAsString();
 
     }
 
