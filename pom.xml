@@ -12,6 +12,7 @@
         <module>producer</module>
         <module>kafka-producer-wikimedia</module>
         <module>kafka-consumer-opensearch</module>
+        <module>kstreams-wordcount</module>
     </modules>
 
     <properties>
