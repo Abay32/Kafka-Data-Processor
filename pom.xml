@@ -13,6 +13,7 @@
         <module>kafka-producer-wikimedia</module>
         <module>kafka-consumer-opensearch</module>
         <module>kstreams-wordcount</module>
+        <module>kafka-color-count</module>
     </modules>
 
     <properties>
