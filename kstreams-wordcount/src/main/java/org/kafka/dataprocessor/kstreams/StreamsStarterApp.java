@@ -3,15 +3,13 @@ package org.kafka.dataprocessor.kstreams;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KStreamBuilder;
-import org.apache.kafka.streams.kstream.KTable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.streams.kstream.*;
 
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
 
@@ -23,31 +21,45 @@ public class StreamsStarterApp {
 
         Properties config = getConfig();
 
-        KStreamBuilder builder = new KStreamBuilder();
+        StreamsBuilder builder = new StreamsBuilder();
         // stream from kafka
         KStream<String, String> wordCountInput = builder.stream("word-count-input");
+        KStream<String, String> wordCountInput2 = builder.stream("word-count-input-2");
+
+        //Value joiner
+        ValueJoiner<String, String, String> valueJoiner = (left, right) -> {
+            return left + "added" + right;
+        };
+
+        //define joinWindows
+        JoinWindows tenSecondWindow = JoinWindows.ofTimeDifferenceAndGrace(
+                Duration.ofSeconds(10), // Window Size: The span during which records must match
+                Duration.ofSeconds(0)   // Grace Period: How long after the window ends we still accept late records
+        );
+
+        KStream<String, String> stringJoiner = wordCountInput.join(wordCountInput2, valueJoiner, tenSecondWindow);
 
         // map-values to lowercase
-        KTable<String, Long> wordCounts = wordCountInput
-                .mapValues(String::toLowerCase)
+        KTable<String, Long> wordCounts = stringJoiner
+                .mapValues(value -> value.toLowerCase())
                 .flatMapValues(lowerCasedTextLine -> Arrays.asList(lowerCasedTextLine.split(" ")))
                 .selectKey((ignoredKey, word) -> word)
                 .groupByKey()
-                .count("Counts");
+                .count(Materialized.as("Counts"));
 
-        wordCounts.to(Serdes.String(), Serdes.Long(),"word-count-output");
+        wordCounts.toStream().to("word-count-output", Produced.with(Serdes.String(), Serdes.Long()));
+
+        System.out.println("I am here what's up"+wordCounts);
 
         //Start a kafka streaming
-        KafkaStreams streams = new KafkaStreams(builder, config);
+        KafkaStreams streams = new KafkaStreams(builder.build(), config);
         streams.start();
 
         // printing the streams topology
-        System.out.println("Streams started"+ streams.toString());
+        System.out.println("Streams started"+ streams);
 
         // Shutdown gracefully --> correctly
         Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
-
-
     }
 
     public static Properties getConfig() {

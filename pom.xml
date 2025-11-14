@@ -14,6 +14,7 @@
         <module>kafka-consumer-opensearch</module>
         <module>kstreams-wordcount</module>
         <module>kafka-color-count</module>
+        <module>voice-command-parser</module>
     </modules>
 
     <properties>
