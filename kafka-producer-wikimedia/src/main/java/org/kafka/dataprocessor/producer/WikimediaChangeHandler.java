@@ -1,9 +1,10 @@
-package org.kafka.dataprocessor;
+package org.kafka.dataprocessor.producer;
 
 import com.launchdarkly.eventsource.EventHandler;
 import com.launchdarkly.eventsource.MessageEvent;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,9 +37,17 @@ public class WikimediaChangeHandler implements EventHandler {
 
     @Override
     public void onMessage(String s, MessageEvent messageEvent) throws Exception {
-        log.info("Wikimedia change received " + messageEvent.getData());
+        //
+
+        String eventData = messageEvent.getData();
+
+        // Get the key
+        String key = extractKeyFromJson(eventData);
+
+        log.info("Wikimedia change received with Key: " + key + " value " + messageEvent.getData());
+
         //asynchronous
-        kafkaProducer.send( new ProducerRecord<>(topic, messageEvent.getData() ));
+        kafkaProducer.send( new ProducerRecord<>(topic, key, eventData ));
     }
 
     @Override
@@ -50,5 +59,14 @@ public class WikimediaChangeHandler implements EventHandler {
     @Override
     public void onError(Throwable throwable) {
         log.error("Error in Streaming Reading " + throwable.getMessage());
+    }
+
+    private String extractKeyFromJson(String jsonString) {
+        try {
+            JSONObject jsonObject = new JSONObject(jsonString);
+            return jsonObject.optString("user", "default-key");
+        } catch (Exception e) {
+            return "default-key";
+        }
     }
 }

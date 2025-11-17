@@ -1,0 +1,64 @@
+{
+  "type": "record",
+  "name": "RecentChange",
+  "namespace": "org.kafka.dataprocessor.producer.dto",
+  "fields": [
+    {"name": "schema", "type": "string"},
+    {
+      "name": "meta",
+      "type": {
+        "type": "record",
+        "name": "Meta",
+        "fields": [
+          {"name": "uri", "type": "string"},
+          {"name": "request_id", "type": "string"},
+          {"name": "id", "type": "string"},
+          {"name": "domain", "type": "string"},
+          {"name": "stream", "type": "string"},
+          {"name": "dt", "type": "string"},
+          {"name": "topic", "type": "string"},
+          {"name": "partition", "type": "int"},
+          {"name": "offset", "type": "long"}
+        ]
+      }
+    },
+    {"name": "id", "type": "long"},
+    {"name": "type", "type": "string"},
+    {"name": "namespace", "type": "int"},
+    {"name": "title", "type": "string"},
+    {"name": "title_url", "type": "string"},
+    {"name": "comment", "type": "string"},
+    {"name": "timestamp", "type": "long"},
+    {"name": "user", "type": "string"},
+    {"name": "bot", "type": "boolean"},
+    {"name": "notify_url", "type": "string"},
+    {"name": "minor", "type": "boolean"},
+    {
+      "name": "length",
+      "type": {
+        "type": "record",
+        "name": "Length",
+        "fields": [
+          {"name": "old", "type": "int"},
+          {"name": "new", "type": "int"}
+        ]
+      }
+    },
+    {
+      "name": "revision",
+      "type": {
+        "type": "record",
+        "name": "Revision",
+        "fields": [
+          {"name": "old", "type": "long"},
+          {"name": "new", "type": "long"}
+        ]
+      }
+    },
+    {"name": "server_url", "type": "string"},
+    {"name": "server_name", "type": "string"},
+    {"name": "server_script_path", "type": "string"},
+    {"name": "wiki", "type": "string"},
+    {"name": "parsedcomment", "type": "string"}
+  ]
+}

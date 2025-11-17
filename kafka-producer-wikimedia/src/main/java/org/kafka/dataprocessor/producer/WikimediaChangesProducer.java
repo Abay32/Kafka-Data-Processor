@@ -1,4 +1,4 @@
-package org.kafka.dataprocessor;
+package org.kafka.dataprocessor.producer;
 
 import com.launchdarkly.eventsource.EventHandler;
 import com.launchdarkly.eventsource.EventSource;
@@ -23,7 +23,7 @@ public class WikimediaChangesProducer {
         //Create kafka producer instance
         KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
 
-        String topic = "wikimedia.recentchange";
+        String topic = "wikimedia.recent-change";
 
         EventHandler eventHandler = new WikimediaChangeHandler(producer, topic);
 
@@ -66,4 +66,6 @@ public class WikimediaChangesProducer {
         properties.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy");
         return properties;
     }
+
+
 }
