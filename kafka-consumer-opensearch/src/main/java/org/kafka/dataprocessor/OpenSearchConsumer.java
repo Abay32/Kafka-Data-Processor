@@ -175,11 +175,6 @@ public class OpenSearchConsumer {
         }
 
 
-
-
-
-
-
         //main code logic
 
         //close things
