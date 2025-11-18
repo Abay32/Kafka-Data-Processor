@@ -9,6 +9,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.kafka.dataprocessor.avro.Customer;
 
 import java.util.Properties;
+import java.util.UUID;
 
 public class KafkaAvroProducer {
     public static void main(String[] args) {
@@ -28,16 +29,17 @@ public class KafkaAvroProducer {
         String topic = "customer-avro";
 
         Customer customer = Customer.newBuilder()
-                .setFirstName("John")
-                .setLastName("Doe")
-                .setAge(26)
-                .setHeight(185.5f)
-                .setWeight(65.5f)
+                .setFirstName("Abayu")
+                .setLastName("Kassa")
+                .setAge(35)
+                .setHeight(165)
+                .setWeight(66)
+                .setAddress("Main street 21")
                 .setAutomatedEmail(false)
                 .build() ;
 
 
-        ProducerRecord<String, Customer> producerRecord = new ProducerRecord<>(topic, customer);
+        ProducerRecord<String, Customer> producerRecord = new ProducerRecord<>(topic, UUID.randomUUID().toString(), customer);
 
         kafkaProducer.send(producerRecord, new Callback() {
             @Override

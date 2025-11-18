@@ -1,4 +1,4 @@
-package org.kafka.dataprocessor.avro.producer.consumer;
+package org.kafka.dataprocessor.avro.consumer;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -7,17 +7,17 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.kafka.dataprocessor.avro.Customer;
+import org.kafka.dataprocessor.avro.CustomerWithOUtAddress;
 
 import java.time.Duration;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Properties;
 import java.util.logging.Logger;
 
 public class AvroConsumer {
     private static final Logger log = Logger.getLogger(AvroConsumer.class.getSimpleName());
     public static void main(String[] args) {
+
         Properties props = new Properties();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "user-consumer-group");
@@ -28,7 +28,7 @@ public class AvroConsumer {
         props.put("schema.registry.url", "http://localhost:8081");
         props.put("specific.avro.reader", "true");
 
-        KafkaConsumer<String, Customer> customerKafkaConsumer = new KafkaConsumer<>(props);
+        KafkaConsumer<String, CustomerWithOUtAddress> customerKafkaConsumer = new KafkaConsumer<>(props);
 
         // Get a reference to the main thread
         final Thread mainThread = Thread.currentThread();
@@ -52,11 +52,12 @@ public class AvroConsumer {
 
             while (true) {
                 log.info("Polling for new records...");
-                ConsumerRecords<String, Customer> consumerRecords = customerKafkaConsumer.poll(Duration.ofSeconds(5));
+                ConsumerRecords<String, CustomerWithOUtAddress> consumerRecords = customerKafkaConsumer.poll(Duration.ofSeconds(5));
 
 
 
-                for (ConsumerRecord<String, Customer> consumerRecord : consumerRecords) {
+                for (ConsumerRecord<String, CustomerWithOUtAddress> consumerRecord : consumerRecords) {
+
                     System.out.println("Consumed --> key=" + consumerRecord.key() + " , value=" + consumerRecord.value());
                 }
             }
@@ -69,7 +70,6 @@ public class AvroConsumer {
             customerKafkaConsumer.close();
             log.info("Consumer is shut down...");
         }
-
 
     }
 
